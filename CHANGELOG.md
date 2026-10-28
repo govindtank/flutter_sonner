@@ -1,3 +1,10 @@
+## 1.1.0
+
+- **Auto-Dismiss Progress Bar**: Real-time animated progress bar along the bottom of active toasts indicating remaining duration before auto-dismissal.
+- **Left-Accent Variant (`SonnerStyle.leftAccent`)**: High-contrast 4px thick colored vertical indicator bar on the left edge reflecting notification status.
+- **Interactive Tap Callback**: Added `onTap` listener to toast cards for routing and navigation.
+- **Cancel Action Support**: Added secondary `cancelAction` support alongside primary `action`.
+
 ## 1.0.0
 
 - Initial release of `flutter_sonner`.

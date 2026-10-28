@@ -4,8 +4,8 @@ import '../models/sonner_data.dart';
 import '../theme/sonner_theme.dart';
 
 /// Animated card displaying a single Sonner toast with card-depth stacking,
-/// spring transitions, action buttons, and horizontal swipe-to-dismiss.
-class SonnerToastCard extends StatelessWidget {
+/// spring transitions, auto-dismiss progress countdown, action buttons, and swipe-to-dismiss.
+class SonnerToastCard extends StatefulWidget {
   const SonnerToastCard({
     super.key,
     required this.toast,
@@ -23,27 +23,86 @@ class SonnerToastCard extends StatelessWidget {
   final SonnerPosition position;
   final VoidCallback? onDismiss;
 
-  Widget _buildTypeIcon() {
-    if (toast.icon != null) return toast.icon!;
+  @override
+  State<SonnerToastCard> createState() => _SonnerToastCardState();
+}
 
-    switch (toast.type) {
+class _SonnerToastCardState extends State<SonnerToastCard>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _progressController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.toast.duration != null && widget.toast.showProgressBar) {
+      _progressController = AnimationController(
+        vsync: this,
+        duration: widget.toast.duration,
+      )..forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(SonnerToastCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.toast.duration != oldWidget.toast.duration) {
+      _progressController?.dispose();
+      _progressController = null;
+      if (widget.toast.duration != null && widget.toast.showProgressBar) {
+        _progressController = AnimationController(
+          vsync: this,
+          duration: widget.toast.duration,
+        )..forward();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _progressController?.dispose();
+    super.dispose();
+  }
+
+  Color _getAccentColor() {
+    switch (widget.toast.type) {
+      case SonnerType.success:
+        return widget.theme.successColor;
+      case SonnerType.error:
+        return widget.theme.errorColor;
+      case SonnerType.warning:
+        return widget.theme.warningColor;
+      case SonnerType.info:
+        return widget.theme.infoColor;
+      case SonnerType.loading:
+      case SonnerType.normal:
+      case SonnerType.custom:
+        return widget.theme.actionBackgroundColor;
+    }
+  }
+
+  Widget _buildTypeIcon() {
+    if (widget.toast.icon != null) return widget.toast.icon!;
+
+    switch (widget.toast.type) {
       case SonnerType.success:
         return Icon(Icons.check_circle_rounded,
-            color: theme.successColor, size: 20);
+            color: widget.theme.successColor, size: 20);
       case SonnerType.error:
-        return Icon(Icons.error_rounded, color: theme.errorColor, size: 20);
+        return Icon(Icons.error_rounded,
+            color: widget.theme.errorColor, size: 20);
       case SonnerType.warning:
         return Icon(Icons.warning_amber_rounded,
-            color: theme.warningColor, size: 20);
+            color: widget.theme.warningColor, size: 20);
       case SonnerType.info:
-        return Icon(Icons.info_rounded, color: theme.infoColor, size: 20);
+        return Icon(Icons.info_rounded,
+            color: widget.theme.infoColor, size: 20);
       case SonnerType.loading:
         return SizedBox(
           width: 16,
           height: 16,
           child: CircularProgressIndicator(
             strokeWidth: 2.0,
-            valueColor: AlwaysStoppedAnimation<Color>(theme.textColor),
+            valueColor: AlwaysStoppedAnimation<Color>(widget.theme.textColor),
           ),
         );
       case SonnerType.normal:
@@ -54,31 +113,35 @@ class SonnerToastCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (toast.customWidget != null) {
-      return toast.customWidget!;
+    if (widget.toast.customWidget != null) {
+      return widget.toast.customWidget!;
     }
 
     // Depth calculation
-    final effectiveIndex = depthIndex.clamp(0, theme.visibleCardsLimit - 1);
-    final scale =
-        isExpanded ? 1.0 : (1.0 - (effectiveIndex * theme.depthScaleFactor));
-    final offsetY = isExpanded
-        ? (effectiveIndex * 64.0) * (position.isTop ? 1.0 : -1.0)
-        : (effectiveIndex * theme.depthOffsetFactor) *
-            (position.isTop ? 1.0 : -1.0);
-    final opacity = isExpanded
+    final effectiveIndex =
+        widget.depthIndex.clamp(0, widget.theme.visibleCardsLimit - 1);
+    final scale = widget.isExpanded
         ? 1.0
-        : (effectiveIndex >= theme.visibleCardsLimit
+        : (1.0 - (effectiveIndex * widget.theme.depthScaleFactor));
+    final offsetY = widget.isExpanded
+        ? (effectiveIndex * 68.0) * (widget.position.isTop ? 1.0 : -1.0)
+        : (effectiveIndex * widget.theme.depthOffsetFactor) *
+            (widget.position.isTop ? 1.0 : -1.0);
+    final opacity = widget.isExpanded
+        ? 1.0
+        : (effectiveIndex >= widget.theme.visibleCardsLimit
             ? 0.0
             : (1.0 - effectiveIndex * 0.15));
 
-    final hasIcon = toast.icon != null || toast.type != SonnerType.normal;
+    final hasIcon =
+        widget.toast.icon != null || widget.toast.type != SonnerType.normal;
+    final accentColor = _getAccentColor();
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutBack,
-      bottom: position.isBottom ? 0 : null,
-      top: position.isTop ? 0 : null,
+      bottom: widget.position.isBottom ? 0 : null,
+      top: widget.position.isTop ? 0 : null,
       left: 0,
       right: 0,
       child: AnimatedOpacity(
@@ -88,111 +151,184 @@ class SonnerToastCard extends StatelessWidget {
           offset: Offset(0, offsetY),
           child: Transform.scale(
             scale: scale,
-            alignment:
-                position.isTop ? Alignment.topCenter : Alignment.bottomCenter,
+            alignment: widget.position.isTop
+                ? Alignment.topCenter
+                : Alignment.bottomCenter,
             child: Dismissible(
-              key: Key(toast.id),
-              direction: toast.dismissible
+              key: Key(widget.toast.id),
+              direction: widget.toast.dismissible
                   ? DismissDirection.horizontal
                   : DismissDirection.none,
               onDismissed: (_) {
-                Sonner.dismiss(toast.id);
-                onDismiss?.call();
+                Sonner.dismiss(widget.toast.id);
+                widget.onDismiss?.call();
               },
-              child: Container(
-                width: theme.width,
-                padding: theme.padding,
-                decoration: BoxDecoration(
-                  color: theme.backgroundColor,
-                  borderRadius: BorderRadius.circular(theme.borderRadius),
-                  border: Border.all(color: theme.borderColor, width: 1.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.shadowColor,
-                      blurRadius: theme.elevation * 1.5,
-                      offset: Offset(0, theme.elevation * 0.4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    if (hasIcon) ...[
-                      _buildTypeIcon(),
-                      const SizedBox(width: 12.0),
+              child: InkWell(
+                onTap: widget.toast.onTap,
+                borderRadius: BorderRadius.circular(widget.theme.borderRadius),
+                child: Container(
+                  width: widget.theme.width,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: widget.theme.backgroundColor,
+                    borderRadius:
+                        BorderRadius.circular(widget.theme.borderRadius),
+                    border:
+                        Border.all(color: widget.theme.borderColor, width: 1.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: widget.theme.shadowColor,
+                        blurRadius: widget.theme.elevation * 1.5,
+                        offset: Offset(0, widget.theme.elevation * 0.4),
+                      ),
                     ],
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            toast.title,
-                            style: TextStyle(
-                              color: theme.textColor,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: theme.fontFamily,
-                            ),
-                          ),
-                          if (toast.description != null) ...[
-                            const SizedBox(height: 3.0),
-                            Text(
-                              toast.description!,
-                              style: TextStyle(
-                                color: theme.descriptionColor,
-                                fontSize: 12.0,
-                                height: 1.35,
-                                fontFamily: theme.fontFamily,
+                  ),
+                  child: Stack(
+                    children: [
+                      // Optional Left-Accent Bar
+                      if (widget.toast.style == SonnerStyle.leftAccent)
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 4.0,
+                          child: Container(color: accentColor),
+                        ),
+
+                      // Card Content
+                      Padding(
+                        padding: widget.toast.style == SonnerStyle.leftAccent
+                            ? widget.theme.padding
+                                .add(const EdgeInsets.only(left: 4.0))
+                            : widget.theme.padding,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            if (hasIcon) ...[
+                              _buildTypeIcon(),
+                              const SizedBox(width: 12.0),
+                            ],
+                            Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.toast.title,
+                                    style: TextStyle(
+                                      color: widget.theme.textColor,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: widget.theme.fontFamily,
+                                    ),
+                                  ),
+                                  if (widget.toast.description != null) ...[
+                                    const SizedBox(height: 3.0),
+                                    Text(
+                                      widget.toast.description!,
+                                      style: TextStyle(
+                                        color: widget.theme.descriptionColor,
+                                        fontSize: 12.0,
+                                        height: 1.35,
+                                        fontFamily: widget.theme.fontFamily,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
+                            if (widget.toast.cancelAction != null) ...[
+                              const SizedBox(width: 8.0),
+                              InkWell(
+                                onTap: () {
+                                  widget.toast.cancelAction!.onPressed();
+                                  Sonner.dismiss(widget.toast.id);
+                                },
+                                borderRadius: BorderRadius.circular(6.0),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8.0, vertical: 4.0),
+                                  child: Text(
+                                    widget.toast.cancelAction!.label,
+                                    style: TextStyle(
+                                      color: widget.theme.descriptionColor,
+                                      fontSize: 12.0,
+                                      fontWeight: FontWeight.w500,
+                                      fontFamily: widget.theme.fontFamily,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (widget.toast.action != null) ...[
+                              const SizedBox(width: 10.0),
+                              InkWell(
+                                onTap: () {
+                                  widget.toast.action!.onPressed();
+                                  Sonner.dismiss(widget.toast.id);
+                                },
+                                borderRadius: BorderRadius.circular(6.0),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10.0, vertical: 5.0),
+                                  decoration: BoxDecoration(
+                                    color: widget.theme.actionBackgroundColor,
+                                    borderRadius: BorderRadius.circular(6.0),
+                                  ),
+                                  child: Text(
+                                    widget.toast.action!.label,
+                                    style: TextStyle(
+                                      color: widget.theme.actionTextColor,
+                                      fontSize: 12.0,
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: widget.theme.fontFamily,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (widget.toast.closeButton) ...[
+                              const SizedBox(width: 6.0),
+                              InkWell(
+                                onTap: () => Sonner.dismiss(widget.toast.id),
+                                borderRadius: BorderRadius.circular(4.0),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: Icon(
+                                    Icons.close_rounded,
+                                    size: 15.0,
+                                    color: widget.theme.closeButtonColor,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
-                    ),
-                    if (toast.action != null) ...[
-                      const SizedBox(width: 10.0),
-                      InkWell(
-                        onTap: () {
-                          toast.action!.onPressed();
-                          Sonner.dismiss(toast.id);
-                        },
-                        borderRadius: BorderRadius.circular(6.0),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10.0, vertical: 5.0),
-                          decoration: BoxDecoration(
-                            color: theme.actionBackgroundColor,
-                            borderRadius: BorderRadius.circular(6.0),
-                          ),
-                          child: Text(
-                            toast.action!.label,
-                            style: TextStyle(
-                              color: theme.actionTextColor,
-                              fontSize: 12.0,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: theme.fontFamily,
-                            ),
-                          ),
                         ),
                       ),
-                    ],
-                    if (toast.closeButton) ...[
-                      const SizedBox(width: 6.0),
-                      InkWell(
-                        onTap: () => Sonner.dismiss(toast.id),
-                        borderRadius: BorderRadius.circular(4.0),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: Icon(
-                            Icons.close_rounded,
-                            size: 15.0,
-                            color: theme.closeButtonColor,
+
+                      // Bottom Progress Countdown Bar
+                      if (_progressController != null && widget.depthIndex == 0)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          height: 2.5,
+                          child: AnimatedBuilder(
+                            animation: _progressController!,
+                            builder: (context, _) {
+                              return FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: (1.0 - _progressController!.value)
+                                    .clamp(0.0, 1.0),
+                                child: Container(
+                                  color: accentColor.withValues(alpha: 0.65),
+                                ),
+                              );
+                            },
                           ),
                         ),
-                      ),
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),

@@ -17,13 +17,16 @@ class Sonner {
     String title, {
     String? description,
     SonnerType type = SonnerType.normal,
+    SonnerStyle style = SonnerStyle.standard,
     Duration? duration = const Duration(milliseconds: 4000),
     SonnerAction? action,
     SonnerAction? cancelAction,
     Widget? icon,
     Widget? customWidget,
+    VoidCallback? onTap,
     bool dismissible = true,
     bool closeButton = true,
+    bool showProgressBar = true,
   }) {
     final id = 'sonner_${DateTime.now().millisecondsSinceEpoch}_${++_counter}';
 
@@ -32,13 +35,16 @@ class Sonner {
       title: title,
       description: description,
       type: type,
+      style: style,
       duration: duration,
       action: action,
       cancelAction: cancelAction,
       icon: icon,
       customWidget: customWidget,
+      onTap: onTap,
       dismissible: dismissible,
       closeButton: closeButton,
+      showProgressBar: showProgressBar,
     );
 
     final current = List<SonnerToast>.from(toasts.value);
@@ -54,18 +60,22 @@ class Sonner {
   static String success(
     String title, {
     String? description,
+    SonnerStyle style = SonnerStyle.standard,
     Duration? duration = const Duration(milliseconds: 4000),
     SonnerAction? action,
     SonnerAction? cancelAction,
+    VoidCallback? onTap,
     bool closeButton = true,
   }) {
     return show(
       title,
       description: description,
       type: SonnerType.success,
+      style: style,
       duration: duration,
       action: action,
       cancelAction: cancelAction,
+      onTap: onTap,
       closeButton: closeButton,
     );
   }
@@ -74,18 +84,22 @@ class Sonner {
   static String error(
     String title, {
     String? description,
+    SonnerStyle style = SonnerStyle.standard,
     Duration? duration = const Duration(milliseconds: 4500),
     SonnerAction? action,
     SonnerAction? cancelAction,
+    VoidCallback? onTap,
     bool closeButton = true,
   }) {
     return show(
       title,
       description: description,
       type: SonnerType.error,
+      style: style,
       duration: duration,
       action: action,
       cancelAction: cancelAction,
+      onTap: onTap,
       closeButton: closeButton,
     );
   }
@@ -94,16 +108,20 @@ class Sonner {
   static String info(
     String title, {
     String? description,
+    SonnerStyle style = SonnerStyle.standard,
     Duration? duration = const Duration(milliseconds: 4000),
     SonnerAction? action,
+    VoidCallback? onTap,
     bool closeButton = true,
   }) {
     return show(
       title,
       description: description,
       type: SonnerType.info,
+      style: style,
       duration: duration,
       action: action,
+      onTap: onTap,
       closeButton: closeButton,
     );
   }
@@ -112,16 +130,20 @@ class Sonner {
   static String warning(
     String title, {
     String? description,
+    SonnerStyle style = SonnerStyle.standard,
     Duration? duration = const Duration(milliseconds: 4000),
     SonnerAction? action,
+    VoidCallback? onTap,
     bool closeButton = true,
   }) {
     return show(
       title,
       description: description,
       type: SonnerType.warning,
+      style: style,
       duration: duration,
       action: action,
+      onTap: onTap,
       closeButton: closeButton,
     );
   }

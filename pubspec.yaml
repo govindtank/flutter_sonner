@@ -1,6 +1,6 @@
 name: flutter_sonner
 description: An opinionated stacked action toast and notification HUD for Flutter inspired by Sonner. Spring physics, card depth stacking, and promise toasts.
-version: 1.0.0
+version: 1.1.0
 homepage: https://github.com/govindtank/flutter_sonner
 repository: https://github.com/govindtank/flutter_sonner
 issue_tracker: https://github.com/govindtank/flutter_sonner/issues
